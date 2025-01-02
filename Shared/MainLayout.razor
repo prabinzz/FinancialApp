@@ -1,5 +1,8 @@
-﻿@inherits LayoutComponentBase
-
+﻿@using FinancialApp.Data
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject AuthService auth;
+@inject UserRepository UserRepo;
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -15,3 +18,14 @@
         </article>
     </main>
 </div>
+
+@code{
+    protected override void OnInitialized(){
+        var currentPath = new Uri(NavigationManager.Uri).AbsolutePath;
+
+        if (currentPath != "/login" && !auth.Authorized)
+        {
+            NavigationManager.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}

@@ -1,0 +1,127 @@
+﻿@page "/login"
+@using FinancialApp.Data
+@using System.ComponentModel.DataAnnotations
+@inject UserRepository UserRepository
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<h3>Login</h3>
+
+@if (IsFirstUser)
+{
+    <p>No users found. Please create the first user.</p>
+    <EditForm Model="firstUserModel" OnValidSubmit="AddFirstUser">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div>
+            <label for="Username">Username:</label>
+            <InputText id="Username" @bind-Value="firstUserModel.Username" />
+        </div>
+        <div>
+            <label for="Password">Password:</label>
+            <InputText id="Password" @bind-Value="firstUserModel.Password" type="password" />
+        </div>
+        <div>
+            <label for="PreferredCurrency">Preferred Currency:</label>
+            <InputText id="PreferredCurrency" @bind-Value="firstUserModel.PreferredCurrency" />
+        </div>
+        <button type="submit">Create User</button>
+    </EditForm>
+}
+else
+{
+    <EditForm Model="loginModel" OnValidSubmit="LoginUser">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div>
+            <label for="Username">Username:</label>
+            <InputText id="Username" @bind-Value="loginModel.Username" />
+        </div>
+        <div>
+            <label for="Password">Password:</label>
+            <InputText id="Password" @bind-Value="loginModel.Password" type="password" />
+        </div>
+        <button type="submit">Login</button>
+    </EditForm>
+}
+
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <p style="color: red;">@ErrorMessage</p>
+}
+
+@code {
+    private FirstUserModel firstUserModel = new();
+    private LoginModel loginModel = new();
+    private bool IsFirstUser;
+    private string ErrorMessage;
+
+    protected override void OnInitialized()
+    {
+        // Check if any users exist
+        IsFirstUser = !UserRepository.GetAllUsers().Any();
+    }
+
+    private void AddFirstUser()
+    {
+        // Validate required fields
+        if (string.IsNullOrWhiteSpace(firstUserModel.Username) ||
+            string.IsNullOrWhiteSpace(firstUserModel.Password) ||
+            string.IsNullOrWhiteSpace(firstUserModel.PreferredCurrency))
+        {
+            ErrorMessage = "All fields are required!";
+            return;
+        }
+
+        // Add the first user
+        UserRepository.AddUser(Guid.NewGuid().ToString(), firstUserModel.Username, firstUserModel.Password, firstUserModel.PreferredCurrency);
+
+        // Clear error message and update state
+        ErrorMessage = null;
+        IsFirstUser = false;
+
+        // Redirect to the main page
+        NavigationManager.NavigateTo("/");
+    }
+
+    private void LoginUser()
+    {
+        // Validate login credentials
+        var user = UserRepository.GetAllUsers()
+            .FirstOrDefault(u => u.Username == loginModel.Username && u.Password == loginModel.Password);
+
+        if (user != null)
+        {
+            ErrorMessage = null;
+            AuthService.Authorized = true; // Update auth state
+            NavigationManager.NavigateTo("/"); // Redirect to home
+        }
+        else
+        {
+            ErrorMessage = "Invalid username or password!";
+        }
+    }
+
+    private class FirstUserModel
+    {
+        [Required(ErrorMessage = "Username is required.")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required.")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Preferred currency is required.")]
+        public string PreferredCurrency { get; set; } = string.Empty;
+    }
+
+    private class LoginModel
+    {
+        [Required(ErrorMessage = "Username is required.")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required.")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

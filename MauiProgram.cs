@@ -21,8 +21,14 @@ namespace FinancialApp
     		builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
+            // builder.Services.AddSingleton<WeatherForecastService>();
+            DatabaseInitializer.InitializeDatabase();
 
-            builder.Services.AddSingleton<WeatherForecastService>();
+            // register user service 
+            builder.Services.AddSingleton<UserRepository>(provider =>
+                new UserRepository(DatabaseInitializer.GetDatabasePath()));
+
+            builder.Services.AddSingleton<AuthService>(new AuthService());
 
             return builder.Build();
         }
